@@ -103,7 +103,7 @@ public struct Response {
 }
 
 public class HTTPServer: SimpleServer {
-	public let httpRequestHandler: (Request?, NWConnection) -> Response
+	public let httpRequestHandler: (Request?, NWConnection) -> Response?
 	
 	public init(requestHandler: @escaping (Request?, NWConnection) -> Response, port: Int) {
 		self.httpRequestHandler = requestHandler
