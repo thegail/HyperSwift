@@ -105,10 +105,10 @@ public struct Response {
 public class HTTPServer: SimpleServer {
 	public let httpRequestHandler: (Request?, NWConnection) -> Response?
 	
-	public init(requestHandler: @escaping (Request?, NWConnection) -> Response, port: Int) {
+	public init(requestHandler: @escaping (Request?, NWConnection) -> Response?, port: Int) {
 		self.httpRequestHandler = requestHandler
 		let reqh: (NWConnection, Data?) -> (data: Data?, close: Bool) = {connection, data in
-			return (data: requestHandler(Request(data: data), connection).dataRepresentation, close: true)
+			return (data: requestHandler(Request(data: data), connection)?.dataRepresentation, close: true)
 		}
 		super.init(port: port, requestHandler: reqh)
 	}
