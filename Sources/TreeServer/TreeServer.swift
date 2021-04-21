@@ -14,7 +14,7 @@ public let errorMessages: Dictionary<String, String> = [
 public enum SiteNode {
 	case file(name: String, type: String)
 	case literal(text: String, type: String)
-	indirect case subDir(default: SiteNode, error: (Int, String) -> Response, subNodes: Dictionary<String, SiteNode>)
+	indirect case subDir(default: SiteNode, subNodes: Dictionary<String, SiteNode>)
 	case redirect(toURL: String)
 	case special(resolver: (Request?, NWConnection) -> Response)
 }
@@ -28,17 +28,17 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 		return Response(code: 300, reason: "Moved permanently", headers: ["Content-Type": "text/html"], body: "<script>window.location='\(redirectURL)';</script><noscript><a href='\(redirectURL)'>Click here to redirect</a></noscript>".data(using: .utf8))
 	case .special(resolver: let resolver):
 		return resolver(request, connection)
-	case .subDir(default: let deflt, error: _, subNodes: _):
+	case .subDir(default: let deflt, subNodes: _):
 		return getEndNodeValue(node: deflt, request: request, connection: connection)
 	case .literal(text: let text, type: let cType):
 		return Response(code: 200, reason: "Success", headers: ["Content-Type": cType], body: text.data(using: .utf8))
 	}
 }
 
-public func evaluateRequest(request: Request, baseNode: SiteNode, connection: NWConnection) -> Response {
+public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: (Int, String) -> Response, connection: NWConnection) -> Response {
 	if request.parsedURL == nil {
 		switch baseNode {
-		case .subDir(default: _, error: let errorHandler, subNodes: _):
+		case .subDir(default: _, subNodes: _):
 			return errorHandler(400, errorMessages["400.url"]!)
 		default:
 			return Response(code: 400, reason: errorMessages["400.url"]!, headers: ["Content-Type": "text/plain"], body: "400: \(errorMessages["400.url"]!)\n\n\(errorMessages["400.url.long"]!)".data(using: .utf8))
@@ -48,7 +48,7 @@ public func evaluateRequest(request: Request, baseNode: SiteNode, connection: NW
 	var currentNode = baseNode
 	for nodeName in request.parsedURL!.path {
 		switch currentNode {
-		case .subDir(default: _, error: let errorHandler, subNodes: let subnodes):
+		case .subDir(default: _, subNodes: let subnodes):
 			let nextNode = subnodes[nodeName]
 			if nextNode == nil {
 				return errorHandler(404, "Page not found")
