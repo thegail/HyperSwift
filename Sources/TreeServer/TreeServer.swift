@@ -2,7 +2,7 @@ import Foundation
 import HyperSwift
 import Network
 
-let errorMessages: Dictionary<String, String> = [
+public let errorMessages: Dictionary<String, String> = [
 	"404": "Page not found",
 	"404.long": "The page you were looking for does not exist.",
 	"404.tooFar": "Page not found (not a directory)",
@@ -11,7 +11,7 @@ let errorMessages: Dictionary<String, String> = [
 	"400.url.long": "The provided URL was not able to be processed by the server."
 ]
 
-enum SiteNode {
+public enum SiteNode {
 	case file(name: String, type: String)
 	case literal(text: String, type: String)
 	indirect case subDir(default: SiteNode, error: (Int, String) -> Response, subNodes: Dictionary<String, SiteNode>)
@@ -19,7 +19,7 @@ enum SiteNode {
 	case special(resolver: (Request?, NWConnection) -> Response)
 }
 
-func getEndNodeValue(node: SiteNode, request: Request, connection: NWConnection) -> Response {
+public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConnection) -> Response {
 	switch node {
 	case .file(name: let name, type: let type):
 		let fileContent = try? Data(contentsOf: URL(fileURLWithPath: name))
@@ -35,7 +35,7 @@ func getEndNodeValue(node: SiteNode, request: Request, connection: NWConnection)
 	}
 }
 
-func evaluateRequest(request: Request, baseNode: SiteNode, connection: NWConnection) -> Response {
+public func evaluateRequest(request: Request, baseNode: SiteNode, connection: NWConnection) -> Response {
 	if request.parsedURL == nil {
 		switch baseNode {
 		case .subDir(default: _, error: let errorHandler, subNodes: _):
