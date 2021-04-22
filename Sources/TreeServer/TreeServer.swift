@@ -8,6 +8,7 @@ public enum SiteNode {
 	indirect case subDir(default: SiteNode, subNodes: Dictionary<String, SiteNode>)
 	case redirect(toURL: String)
 	case special(resolver: (Request?, NWConnection) -> Response)
+	indirect case specialSubDir(default: SiteNode, resolver: (Request?, NWConnection) -> Response)
 }
 
 public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConnection) -> Response {
@@ -23,6 +24,8 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 		return getEndNodeValue(node: deflt, request: request, connection: connection)
 	case .literal(text: let text, type: let cType):
 		return Response(code: 200, reason: "Success", headers: ["Content-Type": cType], body: text.data(using: .utf8))
+	case .specialSubDir(default: let deflt, resolver: _):
+		return getEndNodeValue(node: deflt, request: request, connection: connection)
 	}
 }
 
@@ -40,6 +43,8 @@ public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: 
 				return errorHandler(404, "page doesn't exist")
 			}
 			currentNode = nextNode!
+		case .specialSubDir(default: _, resolver: let resolver):
+			return resolver(request, connection)
 		default:
 			return errorHandler(404, "not a directory")
 		}
