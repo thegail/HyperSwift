@@ -28,7 +28,7 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 
 public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: (Int, String) -> Response, connection: NWConnection) -> Response {
 	if request.parsedURL == nil {
-		return errorHandler(400, "Bad request (invalid URL)")
+		return errorHandler(400, "invalid url")
 	}
 	
 	var currentNode = baseNode
@@ -37,11 +37,11 @@ public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: 
 		case .subDir(default: _, subNodes: let subnodes):
 			let nextNode = subnodes[nodeName]
 			if nextNode == nil {
-				return errorHandler(404, "Page not found")
+				return errorHandler(404, "page doesn't exist")
 			}
 			currentNode = nextNode!
 		default:
-			return errorHandler(404, "Page not found (not a directory)")
+			return errorHandler(404, "not a directory")
 		}
 	}
 	
