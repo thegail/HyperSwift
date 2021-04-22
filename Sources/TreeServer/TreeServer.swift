@@ -11,7 +11,7 @@ public enum SiteNode {
 	indirect case specialSubDir(default: SiteNode, resolver: (Request?, NWConnection) -> Response)
 }
 
-public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConnection) -> Response {
+public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConnection, errorHandler: (Int, String) -> Response) -> Response {
 	switch node {
 	case .file(name: let name, type: let type):
 		let fileContent = try? Data(contentsOf: URL(fileURLWithPath: name))
@@ -21,11 +21,11 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 	case .special(resolver: let resolver):
 		return resolver(request, connection)
 	case .subDir(default: let deflt, subNodes: _):
-		return getEndNodeValue(node: deflt, request: request, connection: connection)
+		return getEndNodeValue(node: deflt, request: request, connection: connection, errorHandler: errorHandler)
 	case .literal(text: let text, type: let cType):
 		return Response(code: 200, reason: "Success", headers: ["Content-Type": cType], body: text.data(using: .utf8))
 	case .specialSubDir(default: let deflt, resolver: _):
-		return getEndNodeValue(node: deflt, request: request, connection: connection)
+		return getEndNodeValue(node: deflt, request: request, connection: connection, errorHandler: errorHandler)
 	}
 }
 
@@ -50,5 +50,5 @@ public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: 
 		}
 	}
 	
-	return getEndNodeValue(node: currentNode, request: request, connection: connection)
+	return getEndNodeValue(node: currentNode, request: request, connection: connection, errorHandler: errorHandler)
 }
