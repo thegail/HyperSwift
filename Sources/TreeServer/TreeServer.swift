@@ -2,15 +2,6 @@ import Foundation
 import HyperSwift
 import Network
 
-public let errorMessages: Dictionary<String, String> = [
-	"404": "Page not found",
-	"404.long": "The page you were looking for does not exist.",
-	"404.tooFar": "Page not found (not a directory)",
-	"404.tooFar.long": "One of the path nodes in the provided URL is not a directory.",
-	"400.url": "Bad request (invalid URL)",
-	"400.url.long": "The provided URL was not able to be processed by the server."
-]
-
 public enum SiteNode {
 	case file(name: String, type: String)
 	case literal(text: String, type: String)
@@ -37,12 +28,7 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 
 public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: (Int, String) -> Response, connection: NWConnection) -> Response {
 	if request.parsedURL == nil {
-		switch baseNode {
-		case .subDir(default: _, subNodes: _):
-			return errorHandler(400, errorMessages["400.url"]!)
-		default:
-			return Response(code: 400, reason: errorMessages["400.url"]!, headers: ["Content-Type": "text/plain"], body: "400: \(errorMessages["400.url"]!)\n\n\(errorMessages["400.url.long"]!)".data(using: .utf8))
-		}
+		return errorHandler(400, "Bad request (invalid URL)")
 	}
 	
 	var currentNode = baseNode
@@ -55,7 +41,7 @@ public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: 
 			}
 			currentNode = nextNode!
 		default:
-			return Response(code: 404, reason: "Page not found (not a directory)", headers: ["Content-Type": "text/plain"], body: "404: \(errorMessages["404.tooFar"]!)\n\n\(errorMessages["404.tooFar.long"]!)".data(using: .utf8))
+			return errorHandler(404, "Page not found (not a directory)")
 		}
 	}
 	

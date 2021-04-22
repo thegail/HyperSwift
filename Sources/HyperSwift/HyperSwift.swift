@@ -102,8 +102,16 @@ public struct Response {
 	}
 }
 
-public class HTTPServer: SimpleServer {
+let internalErrorCodes: Dictionary<UInt, (short: String, long: String)> = [
+	400: (short: "Bad request", long: "The request send by the client was invalid."),
+	404: (short: "Page not found", long: "The page you are trying to visit doesn't exist."),
+	500: (short: "Internal server error", long: "The server is having a problem and can't display the page. Try again later.")
+]
+
+open class HTTPServer: SimpleServer {
 	public let httpRequestHandler: (Request?, NWConnection) -> Response?
+	
+	public static var errorCodes = internalErrorCodes
 	
 	public init(requestHandler: @escaping (Request?, NWConnection) -> Response?, port: Int) {
 		self.httpRequestHandler = requestHandler
