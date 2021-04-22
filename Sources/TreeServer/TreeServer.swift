@@ -16,7 +16,7 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 		let fileContent = try? Data(contentsOf: URL(fileURLWithPath: name))
 		return Response(code: 200, reason: "Success", headers: ["Content-Type": type], body: fileContent)
 	case .redirect(toURL: let redirectURL):
-		return Response(code: 300, reason: "Moved permanently", headers: ["Location": redirectURL], body: nil)
+		return Response(code: 301, reason: "Moved permanently", headers: ["Location": redirectURL], body: nil)
 	case .special(resolver: let resolver):
 		return resolver(request, connection)
 	case .subDir(default: let deflt, subNodes: _):
