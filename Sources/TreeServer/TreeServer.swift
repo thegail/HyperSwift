@@ -7,8 +7,8 @@ public enum SiteNode {
 	case literal(text: String, type: String)
 	indirect case subDir(default: SiteNode, subNodes: Dictionary<String, SiteNode>)
 	case redirect(toURL: String)
-	case special(resolver: (Request?, NWConnection) -> Response)
-	indirect case specialSubDir(default: SiteNode, resolver: (Request?, NWConnection) -> Response)
+	case special(resolver: (Request?, NWConnection, (Int, String) -> Response) -> Response)
+	indirect case specialSubDir(default: SiteNode, resolver: (Request?, NWConnection, (Int, String) -> Response) -> Response)
 }
 
 public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConnection, errorHandler: (Int, String) -> Response) -> Response {
@@ -19,7 +19,7 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 	case .redirect(toURL: let redirectURL):
 		return Response(code: 301, reason: "Moved permanently", headers: ["Location": redirectURL], body: nil)
 	case .special(resolver: let resolver):
-		return resolver(request, connection)
+		return resolver(request, connection, errorHandler)
 	case .subDir(default: let deflt, subNodes: _):
 		return getEndNodeValue(node: deflt, request: request, connection: connection, errorHandler: errorHandler)
 	case .literal(text: let text, type: let cType):
@@ -44,7 +44,7 @@ public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: 
 			}
 			currentNode = nextNode!
 		case .specialSubDir(default: _, resolver: let resolver):
-			return resolver(request, connection)
+			return resolver(request, connection, errorHandler)
 		default:
 			return errorHandler(404, "not a directory")
 		}
