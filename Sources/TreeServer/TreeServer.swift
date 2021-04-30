@@ -3,17 +3,23 @@ import HyperSwift
 import Network
 
 public enum SiteNode {
-	case file(name: String, type: String)
-	case literal(text: String, type: String)
+	case file(name: String, type: String, method: HTTPMethod = .GET)
+	case literal(text: String, type: String, method: HTTPMethod = .GET)
 	indirect case subDir(default: SiteNode, subNodes: Dictionary<String, SiteNode>)
-	case redirect(toURL: String)
+	case redirect(toURL: String, method: HTTPMethod = .GET)
 	case special(resolver: (Request?, NWConnection, (Int, String) -> Response) -> Response)
 	indirect case specialSubDir(default: SiteNode, resolver: (Request?, NWConnection, (Int, String) -> Response) -> Response)
 }
 
 public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConnection, errorHandler: (Int, String) -> Response, preloadedFiles: Dictionary<String, Data>?) -> Response {
 	switch node {
-	case .file(name: let name, type: let type):
+	case .file(name: let name, type: let type, method: let method):
+		if request.method != method {
+			let returnValue = errorHandler(405, "Method not allowed")
+			var returnHeaders = returnValue.headers
+			returnHeaders["Allowed"] = method.rawValue
+			return Response(code: returnValue.code, reason: returnValue.reason, headers: returnHeaders, body: returnValue.body)
+		}
 		let fileContent: Data
 		if preloadedFiles != nil {
 			if preloadedFiles![name] == nil {
@@ -25,13 +31,19 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 			fileContent = try! Data(contentsOf: URL(fileURLWithPath: name))
 		}
 		return Response(code: 200, reason: "Success", headers: ["Content-Type": type], body: fileContent)
-	case .redirect(toURL: let redirectURL):
+	case .redirect(toURL: let redirectURL, _):
 		return Response(code: 301, reason: "Moved permanently", headers: ["Location": redirectURL], body: nil)
 	case .special(resolver: let resolver):
 		return resolver(request, connection, errorHandler)
 	case .subDir(default: let deflt, subNodes: _):
 		return getEndNodeValue(node: deflt, request: request, connection: connection, errorHandler: errorHandler, preloadedFiles: preloadedFiles)
-	case .literal(text: let text, type: let cType):
+	case .literal(text: let text, type: let cType, let method):
+		if request.method != method {
+			let returnValue = errorHandler(405, "Method not allowed")
+			var returnHeaders = returnValue.headers
+			returnHeaders["Allowed"] = method.rawValue
+			return Response(code: returnValue.code, reason: returnValue.reason, headers: returnHeaders, body: returnValue.body)
+		}
 		return Response(code: 200, reason: "Success", headers: ["Content-Type": cType], body: text.data(using: .utf8))
 	case .specialSubDir(default: let deflt, resolver: _):
 		return getEndNodeValue(node: deflt, request: request, connection: connection, errorHandler: errorHandler, preloadedFiles: preloadedFiles)
@@ -40,7 +52,7 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 
 public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: (Int, String) -> Response, connection: NWConnection, preloadedFiles: Dictionary<String, Data>) -> Response {
 	if request.parsedURL == nil {
-		return errorHandler(400, "invalid url")
+		return errorHandler(400, "Invalid Request")
 	}
 	
 	var currentNode = baseNode
@@ -49,13 +61,13 @@ public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: 
 		case .subDir(default: _, subNodes: let subnodes):
 			let nextNode = subnodes[nodeName]
 			if nextNode == nil {
-				return errorHandler(404, "page doesn't exist")
+				return errorHandler(404, "Page not found")
 			}
 			currentNode = nextNode!
 		case .specialSubDir(default: _, resolver: let resolver):
 			return resolver(request, connection, errorHandler)
 		default:
-			return errorHandler(404, "not a directory")
+			return errorHandler(404, "Page not found")
 		}
 	}
 	
