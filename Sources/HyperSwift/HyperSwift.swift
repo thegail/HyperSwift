@@ -105,6 +105,7 @@ public struct Response {
 let internalErrorCodes: Dictionary<UInt, (short: String, long: String)> = [
 	400: (short: "Bad request", long: "The request send by the client was invalid."),
 	404: (short: "Page not found", long: "The page you are trying to visit doesn't exist."),
+	405: (short: "Method not allowed", long: "The HTTP method your client sent is incorrect for this URL."),
 	500: (short: "Internal server error", long: "The server is having a problem and can't display the page. Try again later.")
 ]
 

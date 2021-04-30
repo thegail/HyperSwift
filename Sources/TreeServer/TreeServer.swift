@@ -15,7 +15,7 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 	switch node {
 	case .file(name: let name, type: let type, method: let method):
 		if request.method != method {
-			let returnValue = errorHandler(405, "Method not allowed")
+			let returnValue = errorHandler(405, "incorrect HTTP method")
 			var returnHeaders = returnValue.headers
 			returnHeaders["Allowed"] = method.rawValue
 			return Response(code: returnValue.code, reason: returnValue.reason, headers: returnHeaders, body: returnValue.body)
@@ -39,7 +39,7 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 		return getEndNodeValue(node: deflt, request: request, connection: connection, errorHandler: errorHandler, preloadedFiles: preloadedFiles)
 	case .literal(text: let text, type: let cType, let method):
 		if request.method != method {
-			let returnValue = errorHandler(405, "Method not allowed")
+			let returnValue = errorHandler(405, "incorrect HTTP method")
 			var returnHeaders = returnValue.headers
 			returnHeaders["Allowed"] = method.rawValue
 			return Response(code: returnValue.code, reason: returnValue.reason, headers: returnHeaders, body: returnValue.body)
@@ -52,7 +52,7 @@ public func getEndNodeValue(node: SiteNode, request: Request, connection: NWConn
 
 public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: (Int, String) -> Response, connection: NWConnection, preloadedFiles: Dictionary<String, Data>) -> Response {
 	if request.parsedURL == nil {
-		return errorHandler(400, "Invalid Request")
+		return errorHandler(400, "invalid url")
 	}
 	
 	var currentNode = baseNode
@@ -61,13 +61,13 @@ public func evaluateRequest(request: Request, baseNode: SiteNode, errorHandler: 
 		case .subDir(default: _, subNodes: let subnodes):
 			let nextNode = subnodes[nodeName]
 			if nextNode == nil {
-				return errorHandler(404, "Page not found")
+				return errorHandler(404, "page doesn't exist")
 			}
 			currentNode = nextNode!
 		case .specialSubDir(default: _, resolver: let resolver):
 			return resolver(request, connection, errorHandler)
 		default:
-			return errorHandler(404, "Page not found")
+			return errorHandler(404, "not a directory")
 		}
 	}
 	
